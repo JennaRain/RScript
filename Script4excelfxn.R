@@ -1,6 +1,7 @@
 # David R Script to take place of excel function
 # Date: 04-04-2018
 # Author: Jenna R. Grimshaw
+# Email: jenna.grimshaw@ttu.edu
 
 # Make sure to set your working directory
 # Install Package
