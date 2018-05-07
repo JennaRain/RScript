@@ -1,0 +1,16 @@
+##### Writing a scipt to combine files for NatureServe models
+##### Author: Jenna R. Grimshaw
+##### Date: May 6, 2018
+
+setwd("/Volumes/JRGRIMSHAW/GISresearch/Richard mammal/ExcelSheets/Presence")
+fields <- c("Site", "Latitude", "Longitude", "Common_name", "Species_name", "Family")
+NatServe = data.frame()
+my.files<-list.files(pattern=".csv")
+for(i in 1:length(my.files)){
+  mydat<-read_csv(my.files[i])
+  mydat<-mydat[, c(15:17,3,4,6)]
+  colnames(mydat)<-fields
+  NatServe <- rbind(NatServe, mydat)
+}
+NatServe<-NatServe[order(NatServe$Site),]
+write.csv(NatServe, file = "NatServe.csv", row.names=FALSE)
