@@ -1,0 +1,78 @@
+# Species Abundance Distributions with Arguments
+# April 17, 2019
+# Author: Jenna R. Grimshaw
+
+print("Loading packages...")
+library(fuzzySim)
+library(BiodiversityR)
+library(cooccur)
+library(dplyr)
+library(argparser)
+
+
+
+print("#####################")
+p <- arg_parser("Ecology of genomes")
+p <- add_argument(p, "PREFIX", help = "Code for the genome of interest")
+p <- add_argument(p, "GENOME", help = "Window bed file for genome")
+argv <- parse_args(p)
+
+output<-paste(argv$PREFIX,"_output.txt")
+sink(output)
+setwd("/Users/jennagrimshaw/Desktop/Play")
+
+fields <- c("V1","V2", "V3", "Window","Scaffold", "Start", "Stop", "TE", "Length", "Strand", "Class", "Family", "Divergence", "OLAP")
+bedfile <- read.table(argv$GENOME, header=FALSE, col.names=fields, sep = "\t")
+bedfile <- bedfile[-c(1:3)]
+head(bedfile)
+
+print("Summary of overlap length")
+summary(bedfile$OLAP)
+
+bedfile$percent <- bedfile$OLAP/bedfile$Length
+print("Summary of overlap percentages")
+summary(bedfile$percent)
+
+bedfile <- bedfile[order(bedfile$percent),]
+filtered <- filter(bedfile, percent>=0.5, Family!="Unknown")
+
+# Presence/Absence filtered matrix
+file_pa <- splist2presabs(filtered, sites.col = "Window", sp.col = "Family", keep.n = FALSE)
+row.names(file_pa)<-file_pa$Window # Site x Species matrix
+file_pa<-file_pa[-c(1,12)]
+
+# Abundance filtered matrix
+file_abun <- splist2presabs(filtered, sites.col = "Window", sp.col = "Family", keep.n = TRUE)
+row.names(file_abun)<-file_abun$Window # Site x Species matrix
+file_abun<-file_abun[-c(1,12)]
+
+# Rank abundance plot
+rankabun <- rankabundance(file_abun) # based on abundance
+rankabun
+filename = paste(argv$PREFIX,"_rank.pdf") 
+pdf(filename)
+plot(rankabun, ylab="", xlab="", type="o", pch=19)
+dev.off()
+
+
+# Co-occurrence
+file.t<-t(file_pa)
+cooccur.genome <- cooccur(mat=file.t, type="spp_site", thresh=FALSE, spp_names = TRUE)
+summary(cooccur.genome)
+prob.table(cooccur.genome)
+filename = paste(argv$PREFIX,"_co-occurr.pdf")
+pdf(filename)
+plot(cooccur.genome)
+dev.off()
+
+# Distribution vs abundance
+y<-log(colSums(file_abun))
+x <-log(colSums(file_pa))
+summary(lm(y~x))
+filename=paste(argv$PREFIX,"_dist_abun.pdf")
+pdf(filename)
+plot(x,y, xlab="Sites present", ylab="Abundance",pch=19, cex.lab=1.9) 
+abline(lm(x~y))
+dev.off()
+
+sink()
